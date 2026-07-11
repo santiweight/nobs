@@ -59,6 +59,7 @@ import { IInstantiationService, ServicesAccessor } from '../../platform/instanti
 import { ServiceCollection } from '../../platform/instantiation/common/serviceCollection.js';
 import { ProcessMainService } from '../../platform/process/electron-main/processMainService.js';
 import { SessionManagerMainService } from '../../platform/sessionManager/electron-main/sessionManagerMainService.js';
+import { GitWorktreeMainService } from '../../platform/gitWorktree/electron-main/gitWorktreeMainService.js';
 import { IKeyboardLayoutMainService, KeyboardLayoutMainService } from '../../platform/keyboardLayout/electron-main/keyboardLayoutMainService.js';
 import { ILaunchMainService, LaunchMainService } from '../../platform/launch/electron-main/launchMainService.js';
 import { ILifecycleMainService, LifecycleMainPhase, ShutdownReason } from '../../platform/lifecycle/electron-main/lifecycleMainService.js';
@@ -1304,6 +1305,11 @@ export class CodeApplication extends Disposable {
 		const sessionManagerMainService = disposables.add(new SessionManagerMainService());
 		const sessionManagerChannel = ProxyChannel.fromService(sessionManagerMainService, disposables);
 		mainProcessElectronServer.registerChannel('sessionManager', sessionManagerChannel);
+
+		// Git Worktree
+		const gitWorktreeMainService = new GitWorktreeMainService();
+		const gitWorktreeChannel = ProxyChannel.fromService(gitWorktreeMainService, disposables);
+		mainProcessElectronServer.registerChannel('gitWorktree', gitWorktreeChannel);
 
 		// Encryption
 		const encryptionChannel = ProxyChannel.fromService(accessor.get(IEncryptionMainService), disposables);

@@ -11,29 +11,34 @@ import { WorkbenchPhase, registerWorkbenchContribution2 } from '../../../common/
 import { IBrowserViewWorkbenchService } from '../../browserView/common/browserView.js';
 import { mainWindow } from '../../../../base/browser/window.js';
 import { getZoomFactor } from '../../../../base/browser/browser.js';
-import { ISessionManagerService } from '../../../../platform/sessionManager/common/sessionManagerService.js';
-import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
-import { IPathService } from '../../../services/path/common/pathService.js';
 
 class NobsContribution extends Disposable {
 
 	static readonly ID = 'workbench.contrib.nobs';
 
 	private _browserCount = 0;
+	private _activeWorktreePath = '/';
 
 	constructor(
 		@INobsCenterService private readonly _nobsCenterService: INobsCenterService,
 		@ITerminalService private readonly _terminalService: ITerminalService,
 		@IBrowserViewWorkbenchService private readonly _browserViewWorkbenchService: IBrowserViewWorkbenchService,
-		@ISessionManagerService private readonly _sessionManagerService: ISessionManagerService,
-		@IWorkspaceContextService private readonly _workspaceContextService: IWorkspaceContextService,
-		@IPathService private readonly _pathService: IPathService,
 	) {
 		super();
 		this._wire();
 	}
 
 	private _wire(): void {
+		this._register(this._nobsCenterService.onDidActivateWorkspace(({ worktreePath, isFirstActivation }) => {
+			this._activeWorktreePath = worktreePath;
+			if (isFirstActivation) {
+				mainWindow.requestAnimationFrame(() => {
+					this._nobsCenterService.addAgentTab('claude');
+					this._nobsCenterService.addOutputTab('terminal');
+				});
+			}
+		}));
+
 		this._register(this._nobsCenterService.onDidAddAgentTab(({ id, body, type }) => {
 			this._createAgentTerminal(id, body, type);
 		}));
@@ -45,11 +50,6 @@ class NobsContribution extends Disposable {
 				this._createOutputTerminal(id, body);
 			}
 		}));
-
-		this._register(this._nobsCenterService.onReady(() => {
-			this._nobsCenterService.addAgentTab('claude');
-			this._nobsCenterService.addOutputTab('terminal');
-		}));
 	}
 
 	private async _createAgentTerminal(tabId: string, container: HTMLElement, type: NobsAgentType): Promise<void> {
@@ -58,29 +58,31 @@ class NobsContribution extends Disposable {
 		if (type === 'claude') {
 			await this._createClaudeSession(tabId, container);
 		} else {
-			await this._createDirectAgentTerminal(tabId, container, { executable: 'codex', name: 'Codex', hideFromUser: true });
+			await this._createDirectAgentTerminal(tabId, container, {
+				executable: 'codex',
+				args: ['--approval-mode', 'full-auto'],
+				name: 'Codex',
+				hideFromUser: true,
+				cwd: this._activeWorktreePath,
+			});
 		}
 	}
 
 	private async _createClaudeSession(tabId: string, container: HTMLElement): Promise<void> {
-		const folders = this._workspaceContextService.getWorkspace().folders;
-		const cwd = folders.length > 0 ? folders[0].uri.fsPath : this._pathService.userHome({ preferLocal: true }).fsPath;
-
-		const { tmuxSession } = await this._sessionManagerService.spawn('', cwd);
-
 		const instance = await this._terminalService.createTerminal({
 			config: {
-				executable: 'tmux',
-				args: ['attach-session', '-t', tmuxSession],
+				executable: 'claude',
+				args: ['--dangerously-skip-permissions'],
 				name: 'Claude',
 				hideFromUser: true,
+				cwd: this._activeWorktreePath,
 			},
 			location: TerminalLocation.Panel,
 		});
 		this._attachTerminalToContainer(tabId, container, instance, 'agent');
 	}
 
-	private async _createDirectAgentTerminal(tabId: string, container: HTMLElement, config: { executable: string; name: string; hideFromUser: boolean }): Promise<void> {
+	private async _createDirectAgentTerminal(tabId: string, container: HTMLElement, config: { executable: string; args?: string[]; name: string; hideFromUser: boolean; cwd?: string }): Promise<void> {
 		const instance = await this._terminalService.createTerminal({
 			config,
 			location: TerminalLocation.Panel,
@@ -125,6 +127,7 @@ class NobsContribution extends Disposable {
 			config: {
 				name: 'Terminal',
 				hideFromUser: true,
+				cwd: this._activeWorktreePath,
 			},
 			location: TerminalLocation.Panel,
 		});

@@ -18,14 +18,21 @@ export interface INobsTabHandle {
 	readonly body: HTMLElement;
 }
 
+export interface INobsWorkspaceActivation {
+	readonly workspaceId: string;
+	readonly worktreePath: string;
+	readonly isFirstActivation: boolean;
+}
+
 export interface INobsCenterService {
 	readonly _serviceBrand: undefined;
-	readonly onReady: Event<void>;
 
 	addAgentTab(type: NobsAgentType): INobsTabHandle;
 	addOutputTab(type: NobsOutputType): INobsTabHandle;
 	removeAgentTab(id: string): void;
 	removeOutputTab(id: string): void;
+
+	activateWorkspace(workspaceId: string, worktreePath: string, agentPanel: HTMLElement, outputPanel: HTMLElement, agentActions: INobsAddAction[], outputActions: INobsAddAction[]): void;
 
 	readonly onDidAddAgentTab: Event<INobsTabHandle & { type: NobsAgentType }>;
 	readonly onDidAddOutputTab: Event<INobsTabHandle & { type: NobsOutputType }>;
@@ -33,37 +40,36 @@ export interface INobsCenterService {
 	readonly onDidRemoveOutputTab: Event<string>;
 	readonly onDidChangeActiveAgentTab: Event<string>;
 	readonly onDidChangeActiveOutputTab: Event<string>;
+	readonly onDidActivateWorkspace: Event<INobsWorkspaceActivation>;
 }
 
-export interface INobsCenterServiceInternal extends INobsCenterService {
-	setAgentTabBar(tabBar: INobsTabBarAdapter): void;
-	setOutputTabBar(tabBar: INobsTabBarAdapter): void;
+export interface INobsAddAction {
+	readonly label: string;
+	readonly handler: () => void;
 }
 
 export interface INobsTabBarAdapter {
 	addTab(label: string, id?: string): { id: string; body: HTMLElement };
 	removeTab(id: string): void;
+	readonly element: HTMLElement;
 	readonly onDidRemoveTab: Event<string>;
 	readonly onDidChangeActiveTab: Event<string>;
 	registerTabDisposable(id: string, disposable: IDisposable): void;
 }
 
-export class NobsCenterService extends Disposable implements INobsCenterServiceInternal {
+interface WorkspaceTabState {
+	agentTabBar: INobsTabBarAdapter;
+	outputTabBar: INobsTabBarAdapter;
+	agentDisposables: IDisposable;
+	outputDisposables: IDisposable;
+}
+
+export class NobsCenterService extends Disposable implements INobsCenterService {
 	declare readonly _serviceBrand: undefined;
 
-	private _agentTabBar: INobsTabBarAdapter | null = null;
-	private _outputTabBar: INobsTabBarAdapter | null = null;
-	private _isReady = false;
-
-	private readonly _onReady = this._register(new Emitter<void>());
-	get onReady(): Event<void> {
-		return (listener, thisArgs?, disposables?) => {
-			if (this._isReady) {
-				listener.call(thisArgs);
-			}
-			return this._onReady.event(listener, thisArgs, disposables);
-		};
-	}
+	private readonly _workspaceTabBars = new Map<string, WorkspaceTabState>();
+	private _activeWorkspaceId: string | undefined;
+	private _tabBarFactory: ((parent: HTMLElement, actions: INobsAddAction[]) => INobsTabBarAdapter) | undefined;
 
 	private readonly _onDidAddAgentTab = this._register(new Emitter<INobsTabHandle & { type: NobsAgentType }>());
 	readonly onDidAddAgentTab = this._onDidAddAgentTab.event;
@@ -83,53 +89,100 @@ export class NobsCenterService extends Disposable implements INobsCenterServiceI
 	private readonly _onDidChangeActiveOutputTab = this._register(new Emitter<string>());
 	readonly onDidChangeActiveOutputTab = this._onDidChangeActiveOutputTab.event;
 
-	setAgentTabBar(tabBar: INobsTabBarAdapter): void {
-		this._agentTabBar = tabBar;
-		this._register(tabBar.onDidRemoveTab(id => this._onDidRemoveAgentTab.fire(id)));
-		this._register(tabBar.onDidChangeActiveTab(id => this._onDidChangeActiveAgentTab.fire(id)));
-		this._checkReady();
+	private readonly _onDidActivateWorkspace = this._register(new Emitter<INobsWorkspaceActivation>());
+	private _lastActivation: INobsWorkspaceActivation | undefined;
+	get onDidActivateWorkspace(): Event<INobsWorkspaceActivation> {
+		return (listener, thisArgs?, disposables?) => {
+			if (this._lastActivation) {
+				listener.call(thisArgs, this._lastActivation);
+			}
+			return this._onDidActivateWorkspace.event(listener, thisArgs, disposables);
+		};
 	}
 
-	setOutputTabBar(tabBar: INobsTabBarAdapter): void {
-		this._outputTabBar = tabBar;
-		this._register(tabBar.onDidRemoveTab(id => this._onDidRemoveOutputTab.fire(id)));
-		this._register(tabBar.onDidChangeActiveTab(id => this._onDidChangeActiveOutputTab.fire(id)));
-		this._checkReady();
+	setTabBarFactory(factory: (parent: HTMLElement, actions: INobsAddAction[]) => INobsTabBarAdapter): void {
+		this._tabBarFactory = factory;
 	}
 
-	private _checkReady(): void {
-		if (this._agentTabBar && this._outputTabBar && !this._isReady) {
-			this._isReady = true;
-			this._onReady.fire();
+	activateWorkspace(workspaceId: string, worktreePath: string, agentPanel: HTMLElement, outputPanel: HTMLElement, agentActions: INobsAddAction[], outputActions: INobsAddAction[]): void {
+		if (this._activeWorkspaceId === workspaceId) {
+			return;
 		}
+
+		const oldState = this._activeWorkspaceId ? this._workspaceTabBars.get(this._activeWorkspaceId) : undefined;
+		if (oldState) {
+			oldState.agentTabBar.element.remove();
+			oldState.outputTabBar.element.remove();
+		}
+
+		this._activeWorkspaceId = workspaceId;
+		let isFirstActivation = false;
+
+		let state = this._workspaceTabBars.get(workspaceId);
+		if (!state) {
+			if (!this._tabBarFactory) {
+				throw new Error('Tab bar factory not set');
+			}
+			isFirstActivation = true;
+
+			const agentTabBar = this._tabBarFactory(agentPanel, agentActions);
+			const outputTabBar = this._tabBarFactory(outputPanel, outputActions);
+
+			const agentDisposables = this._wireTabBarEvents(agentTabBar, 'agent');
+			const outputDisposables = this._wireTabBarEvents(outputTabBar, 'output');
+
+			state = { agentTabBar, outputTabBar, agentDisposables, outputDisposables };
+			this._workspaceTabBars.set(workspaceId, state);
+		} else {
+			agentPanel.appendChild(state.agentTabBar.element);
+			outputPanel.appendChild(state.outputTabBar.element);
+		}
+
+		const activation = { workspaceId, worktreePath, isFirstActivation };
+		this._lastActivation = activation;
+		this._onDidActivateWorkspace.fire(activation);
+	}
+
+	private _wireTabBarEvents(tabBar: INobsTabBarAdapter, panel: 'agent' | 'output'): IDisposable {
+		const removeEmitter = panel === 'agent' ? this._onDidRemoveAgentTab : this._onDidRemoveOutputTab;
+		const activeEmitter = panel === 'agent' ? this._onDidChangeActiveAgentTab : this._onDidChangeActiveOutputTab;
+
+		const d1 = tabBar.onDidRemoveTab(id => removeEmitter.fire(id));
+		const d2 = tabBar.onDidChangeActiveTab(id => activeEmitter.fire(id));
+
+		return { dispose: () => { d1.dispose(); d2.dispose(); } };
 	}
 
 	addAgentTab(type: NobsAgentType): INobsTabHandle {
-		if (!this._agentTabBar) {
-			throw new Error('Agent tab bar not initialized');
+		const state = this._activeWorkspaceId ? this._workspaceTabBars.get(this._activeWorkspaceId) : undefined;
+		if (!state) {
+			throw new Error('No active workspace');
 		}
 		const label = type === 'claude' ? 'Claude' : 'Codex';
-		const { id, body } = this._agentTabBar.addTab(label);
+		const { id, body } = state.agentTabBar.addTab(label);
 		this._onDidAddAgentTab.fire({ id, body, type });
 		return { id, body };
 	}
 
 	addOutputTab(type: NobsOutputType): INobsTabHandle {
-		if (!this._outputTabBar) {
-			throw new Error('Output tab bar not initialized');
+		const state = this._activeWorkspaceId ? this._workspaceTabBars.get(this._activeWorkspaceId) : undefined;
+		if (!state) {
+			throw new Error('No active workspace');
 		}
 		const label = type === 'browser' ? 'Browser' : 'Terminal';
-		const { id, body } = this._outputTabBar.addTab(label);
+		const { id, body } = state.outputTabBar.addTab(label);
 		this._onDidAddOutputTab.fire({ id, body, type });
 		return { id, body };
 	}
 
 	removeAgentTab(id: string): void {
-		this._agentTabBar?.removeTab(id);
+		const state = this._activeWorkspaceId ? this._workspaceTabBars.get(this._activeWorkspaceId) : undefined;
+		state?.agentTabBar.removeTab(id);
 	}
 
 	removeOutputTab(id: string): void {
-		this._outputTabBar?.removeTab(id);
+		const state = this._activeWorkspaceId ? this._workspaceTabBars.get(this._activeWorkspaceId) : undefined;
+		state?.outputTabBar.removeTab(id);
 	}
 }
 

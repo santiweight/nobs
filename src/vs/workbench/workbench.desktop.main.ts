@@ -97,6 +97,8 @@ import '../platform/agentHost/browser/agentHostEnablementService.js';
 import './services/browserView/electron-browser/playwrightWorkbenchService.js';
 import './services/process/electron-browser/processService.js';
 import './services/sessionManager/electron-browser/sessionManagerService.js';
+import './services/gitWorktree/electron-browser/gitWorktreeService.js';
+import './services/nobs/browser/nobsWorkspaceService.js';
 import './services/power/electron-browser/powerService.js';
 
 import { registerSingleton } from '../platform/instantiation/common/extensions.js';

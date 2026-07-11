@@ -1,9 +1,10 @@
 /*---------------------------------------------------------------------------------------------
- *  Tests for ISessionManager — shared suite runs 1:1 for every provider.
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
 import assert from 'assert';
-import { SessionEventType, SessionStatus, type ISessionManager, type SessionEvent } from '../common/types.js';
+import { SessionEventType, SessionStatus, type ISessionManager, type SessionEvent, type SessionInfo } from '../common/types.js';
 import { IDLE_TIMEOUT_MS, ClaudeSessionManager, CodexSessionManager } from '../node/sessionManagerImpl.js';
 import { MockPtyFactory } from './mockPty.js';
 
@@ -237,7 +238,7 @@ for (const provider of providers) {
 			test('includes correct session info', async () => {
 				const { id } = await manager.spawn('test', '/workspace');
 				const sessions = await manager.list();
-				const session = sessions.find(s => s.id === id);
+				const session = sessions.find((s: SessionInfo) => s.id === id);
 				assert.ok(session);
 				assert.strictEqual(session.cwd, '/workspace');
 				assert.strictEqual(session.status, SessionStatus.Running);
@@ -249,7 +250,7 @@ for (const provider of providers) {
 				const { id } = await manager.spawn('test', '/tmp');
 				await manager.kill(id);
 				const sessions = await manager.list();
-				assert.strictEqual(sessions.find(s => s.id === id)!.status, SessionStatus.Dead);
+				assert.strictEqual(sessions.find((s: SessionInfo) => s.id === id)!.status, SessionStatus.Dead);
 			});
 		});
 

@@ -29,8 +29,8 @@ export interface ISessionManagerService {
 
 	readonly _serviceBrand: undefined;
 
-	spawn(prompt: string, cwd: string): Promise<{ id: SessionId; tmuxSession: string }>;
-	resume(id: SessionId, prompt: string): Promise<{ tmuxSession: string }>;
+	spawn(prompt: string, cwd: string): Promise<{ id: SessionId }>;
+	resume(id: SessionId, prompt: string): Promise<void>;
 	kill(id: SessionId): Promise<void>;
 	list(): Promise<SessionInfo[]>;
 	status(id: SessionId): Promise<SessionStatus>;
