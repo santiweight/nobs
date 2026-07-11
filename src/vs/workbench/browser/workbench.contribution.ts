@@ -14,7 +14,7 @@ import { WorkbenchPhase, registerWorkbenchContribution2 } from '../common/contri
 import { NotificationsPosition, NotificationsSettings } from '../common/notifications.js';
 import { CustomEditorLabelService } from '../services/editor/common/customEditorLabelService.js';
 import { ActivityBarPosition, EditorActionsLocation, EditorTabsMode, LayoutSettings } from '../services/layout/browser/layoutService.js';
-import { defaultWindowTitle, defaultWindowTitleSeparator } from './parts/titlebar/windowTitle.js';
+import { defaultWindowTitleSeparator } from './parts/titlebar/windowTitle.js';
 
 const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration);
 
@@ -78,8 +78,8 @@ const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Con
 					localize('workbench.editor.editorActionsLocation.hidden', "Editor actions are not shown."),
 				],
 				'markdownDescription': localize('editorActionsLocation', "Controls where the editor actions are shown."),
-				'default': 'default',
-				agentsWindow: { default: 'default', readOnly: true },
+				'default': 'hidden',
+				agentsWindow: { default: 'hidden', readOnly: true },
 			},
 			'workbench.editor.alwaysShowEditorActions': {
 				'type': 'boolean',
@@ -772,7 +772,7 @@ const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Con
 			},
 			'workbench.navigationControl.enabled': {
 				'type': 'boolean',
-				'default': true,
+				'default': false,
 				'markdownDescription': isWeb ?
 					localize('navigationControlEnabledWeb', "Controls whether the navigation control in the title bar is shown.") :
 					localize({ key: 'navigationControlEnabled', comment: ['{0}, {1} is a placeholder for a setting identifier.'] }, "Controls whether the navigation control is shown in the custom title bar. This setting only has an effect when {0} is not set to {1}.", '`#window.customTitleBarVisibility#`', '`never`'),
@@ -780,7 +780,7 @@ const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Con
 			},
 			[LayoutSettings.LAYOUT_ACTIONS]: {
 				'type': 'boolean',
-				'default': true,
+				'default': false,
 				'markdownDescription': isWeb ?
 					localize('layoutControlEnabledWeb', "Controls whether the layout control in the title bar is shown.") :
 					localize({ key: 'layoutControlEnabled', comment: ['{0}, {1} is a placeholder for a setting identifier.'] }, "Controls whether the layout control is shown in the custom title bar. This setting only has an effect when {0} is not set to {1}.", '`#window.customTitleBarVisibility#`', '`never`'),
@@ -851,7 +851,7 @@ const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Con
 		'properties': {
 			'window.title': {
 				'type': 'string',
-				'default': defaultWindowTitle,
+				'default': 'Nobs — ${rootName}',
 				'markdownDescription': windowTitleDescription,
 				agentsWindow: { default: '${appName}', readOnly: true },
 			},
@@ -862,7 +862,7 @@ const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Con
 			},
 			[LayoutSettings.COMMAND_CENTER]: {
 				type: 'boolean',
-				default: true,
+				default: false,
 				markdownDescription: isWeb ?
 					localize('window.commandCenterWeb', "Show command launcher together with the window title.") :
 					localize({ key: 'window.commandCenter', comment: ['{0}, {1} is a placeholder for a setting identifier.'] }, "Show command launcher together with the window title. This setting only has an effect when {0} is not set to {1}.", '`#window.customTitleBarVisibility#`', '`never`'),

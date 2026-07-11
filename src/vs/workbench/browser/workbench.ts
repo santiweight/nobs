@@ -37,6 +37,7 @@ import { WorkbenchContextKeysHandler } from './contextkeys.js';
 import { coalesce } from '../../base/common/arrays.js';
 import { InstantiationService } from '../../platform/instantiation/common/instantiationService.js';
 import { Layout } from './layout.js';
+import { NobsCenterPart } from './parts/nobs/nobsCenterPart.js';
 import { IHostService } from '../services/host/browser/host.js';
 import { IDialogService } from '../../platform/dialogs/common/dialogs.js';
 import { mainWindow } from '../../base/browser/window.js';
@@ -342,6 +343,9 @@ export class Workbench extends Layout {
 		// Warm up font cache information before building up too many dom elements
 		this.restoreFontInfo(storageService, configurationService);
 
+		// Create Nobs center part (must exist before grid layout references it)
+		instantiationService.createInstance(NobsCenterPart);
+
 		// Create Parts
 		for (const { id, role, classes, options } of [
 			{ id: Parts.TITLEBAR_PART, role: 'none', classes: ['titlebar'] },
@@ -349,6 +353,7 @@ export class Workbench extends Layout {
 			{ id: Parts.ACTIVITYBAR_PART, role: 'none', classes: ['activitybar', this.getSideBarPosition() === Position.LEFT ? 'left' : 'right'] }, // Use role 'none' for some parts to make screen readers less chatty #114892
 			{ id: Parts.SIDEBAR_PART, role: 'none', classes: ['sidebar', this.getSideBarPosition() === Position.LEFT ? 'left' : 'right'] },
 			{ id: Parts.EDITOR_PART, role: 'main', classes: ['editor'], options: { restorePreviousState: this.willRestoreEditors() } },
+			{ id: Parts.NOBS_CENTER_PART, role: 'main', classes: ['nobs-center'] },
 			{ id: Parts.PANEL_PART, role: 'none', classes: ['panel', 'basepanel', positionToString(this.getPanelPosition())] },
 			{ id: Parts.AUXILIARYBAR_PART, role: 'none', classes: ['auxiliarybar', 'basepanel', this.getSideBarPosition() === Position.LEFT ? 'right' : 'left'] },
 			{ id: Parts.STATUSBAR_PART, role: 'status', classes: ['statusbar'] }
