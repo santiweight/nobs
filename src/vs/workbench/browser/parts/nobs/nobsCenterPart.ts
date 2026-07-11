@@ -153,7 +153,7 @@ export class NobsCenterPart extends Part {
 		model.textContent = 'Opus 4.6';
 		const enc = append(right, $('.nobs-statusbar-item'));
 		enc.textContent = 'UTF-8';
-		enc.style.color = '#4a4e5a';
+		enc.style.color = 'var(--vscode-disabledForeground)';
 
 		return bar;
 	}
@@ -208,8 +208,8 @@ const NOBS_STYLES = `
 		flex: 1;
 		width: 100%;
 		min-height: 0;
-		background: #181a20;
-		color: #d8dae0;
+		background: var(--vscode-editor-background);
+		color: var(--vscode-foreground);
 		font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
 		font-size: 13px;
 		-webkit-font-smoothing: antialiased;
@@ -219,8 +219,8 @@ const NOBS_STYLES = `
 	.nobs-sidebar {
 		width: 220px;
 		min-width: 220px;
-		background: #1e2028;
-		border-right: 1px solid #2e3038;
+		background: var(--vscode-sideBar-background);
+		border-right: 1px solid var(--vscode-sideBar-border, var(--vscode-panel-border));
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
@@ -231,7 +231,7 @@ const NOBS_STYLES = `
 		font-weight: 600;
 		text-transform: uppercase;
 		letter-spacing: 0.08em;
-		color: #6e7280;
+		color: var(--vscode-sideBarSectionHeader-foreground, var(--vscode-descriptionForeground));
 	}
 	.nobs-sidebar-label {
 		display: flex;
@@ -252,7 +252,7 @@ const NOBS_STYLES = `
 		user-select: none;
 	}
 	.nobs-project-header:hover {
-		background: #262830;
+		background: var(--vscode-list-hoverBackground);
 	}
 	.nobs-chevron {
 		width: 16px;
@@ -260,18 +260,18 @@ const NOBS_STYLES = `
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		color: #4a4e5a;
+		color: var(--vscode-disabledForeground);
 		font-size: 10px;
 	}
 	.nobs-project-name {
 		font-size: 13px;
 		font-weight: 500;
-		color: #d8dae0;
+		color: var(--vscode-foreground);
 	}
 	.nobs-workspace-item {
 		padding: 4px 12px 4px 32px;
 		font-size: 12.5px;
-		color: #6e7280;
+		color: var(--vscode-descriptionForeground);
 		cursor: pointer;
 		display: flex;
 		align-items: center;
@@ -279,26 +279,26 @@ const NOBS_STYLES = `
 		user-select: none;
 	}
 	.nobs-workspace-item:hover {
-		background: #262830;
-		color: #d8dae0;
+		background: var(--vscode-list-hoverBackground);
+		color: var(--vscode-list-hoverForeground, var(--vscode-foreground));
 	}
 	.nobs-workspace-item.active {
-		background: rgba(91, 156, 245, 0.1);
-		color: #5b9cf5;
+		background: var(--vscode-list-activeSelectionBackground);
+		color: var(--vscode-list-activeSelectionForeground);
 	}
 	.nobs-ws-dot {
 		width: 6px;
 		height: 6px;
 		border-radius: 50%;
-		background: #4a4e5a;
+		background: var(--vscode-disabledForeground);
 		flex-shrink: 0;
 	}
 	.nobs-workspace-item.active .nobs-ws-dot {
-		background: #5b9cf5;
+		background: var(--vscode-list-activeSelectionForeground);
 	}
 	.nobs-sidebar-footer {
 		padding: 8px 12px;
-		border-top: 1px solid #2e3038;
+		border-top: 1px solid var(--vscode-sideBar-border, var(--vscode-panel-border));
 	}
 	.nobs-new-project-btn {
 		display: flex;
@@ -306,16 +306,16 @@ const NOBS_STYLES = `
 		gap: 6px;
 		padding: 6px 10px;
 		border-radius: 6px;
-		color: #6e7280;
+		color: var(--vscode-descriptionForeground);
 		cursor: pointer;
 		font-size: 12px;
-		border: 1px dashed #2e3038;
+		border: 1px dashed var(--vscode-sideBar-border, var(--vscode-panel-border));
 		justify-content: center;
 	}
 	.nobs-new-project-btn:hover {
-		background: #262830;
-		color: #d8dae0;
-		border-color: #4a4e5a;
+		background: var(--vscode-list-hoverBackground);
+		color: var(--vscode-foreground);
+		border-color: var(--vscode-disabledForeground);
 	}
 
 	/* Panel containers */
@@ -324,7 +324,7 @@ const NOBS_STYLES = `
 		display: flex;
 		flex-direction: column;
 		min-width: 0;
-		border-right: 1px solid #2e3038;
+		border-right: 1px solid var(--vscode-panel-border);
 	}
 	.nobs-output-panel {
 		flex: 1;
@@ -345,8 +345,8 @@ const NOBS_STYLES = `
 		display: flex;
 		align-items: stretch;
 		height: 36px;
-		background: #1e2028;
-		border-bottom: 1px solid #2e3038;
+		background: var(--vscode-editorGroupHeader-tabsBackground);
+		border-bottom: 1px solid var(--vscode-editorGroupHeader-tabsBorder, var(--vscode-panel-border));
 		flex-shrink: 0;
 	}
 	.nobs-tab-list {
@@ -367,18 +367,18 @@ const NOBS_STYLES = `
 		gap: 6px;
 		padding: 0 8px 0 12px;
 		font-size: 12px;
-		color: #6e7280;
+		color: var(--vscode-tab-inactiveForeground);
 		cursor: pointer;
 		border-bottom: 2px solid transparent;
 		white-space: nowrap;
 		flex-shrink: 0;
 	}
 	.nobs-tab:hover {
-		color: #d8dae0;
+		color: var(--vscode-tab-hoverForeground, var(--vscode-tab-activeForeground));
 	}
 	.nobs-tab.active {
-		color: #d8dae0;
-		border-bottom-color: #5b9cf5;
+		color: var(--vscode-tab-activeForeground);
+		border-bottom-color: var(--vscode-tab-activeBorderTop, var(--vscode-focusBorder));
 	}
 	.nobs-tab-label {
 		pointer-events: none;
@@ -391,7 +391,7 @@ const NOBS_STYLES = `
 		justify-content: center;
 		border-radius: 3px;
 		font-size: 14px;
-		color: #4a4e5a;
+		color: var(--vscode-disabledForeground);
 		opacity: 0;
 		transition: opacity 0.1s;
 	}
@@ -400,8 +400,8 @@ const NOBS_STYLES = `
 		opacity: 1;
 	}
 	.nobs-tab-close:hover {
-		background: #3a3e48;
-		color: #d8dae0;
+		background: var(--vscode-toolbar-hoverBackground);
+		color: var(--vscode-foreground);
 	}
 
 	/* Add buttons */
@@ -417,22 +417,22 @@ const NOBS_STYLES = `
 		align-items: center;
 		justify-content: center;
 		padding: 2px 8px;
-		color: #4a4e5a;
+		color: var(--vscode-disabledForeground);
 		cursor: pointer;
 		font-size: 11px;
 		border-radius: 4px;
 		white-space: nowrap;
 	}
 	.nobs-tab-add-btn:hover {
-		color: #6e7280;
-		background: #262830;
+		color: var(--vscode-descriptionForeground);
+		background: var(--vscode-toolbar-hoverBackground);
 	}
 
 	/* Tab body */
 	.nobs-tab-body-container {
 		flex: 1;
 		overflow: hidden;
-		background: #181a20;
+		background: var(--vscode-editor-background);
 		position: relative;
 		display: flex;
 	}
@@ -457,19 +457,19 @@ const NOBS_STYLES = `
 	}
 	.nobs-resize-handle:hover,
 	.nobs-resize-handle.active {
-		background: #3a6db8;
+		background: var(--vscode-focusBorder);
 	}
 
 	/* Statusbar */
 	.nobs-statusbar {
 		height: 28px;
-		background: #1e2028;
-		border-top: 1px solid #2e3038;
+		background: var(--vscode-statusBar-background);
+		border-top: 1px solid var(--vscode-statusBar-border, var(--vscode-panel-border));
 		display: flex;
 		align-items: center;
 		padding: 0 12px;
 		font-size: 11px;
-		color: #4a4e5a;
+		color: var(--vscode-statusBar-foreground);
 		gap: 16px;
 		justify-content: space-between;
 		flex-shrink: 0;
@@ -489,12 +489,12 @@ const NOBS_STYLES = `
 		width: 6px;
 		height: 6px;
 		border-radius: 50%;
-		background: #4ade80;
+		background: var(--vscode-testing-iconPassed, #4ade80);
 	}
 
 	/* Scrollbar */
 	.nobs-main ::-webkit-scrollbar { width: 6px; }
 	.nobs-main ::-webkit-scrollbar-track { background: transparent; }
-	.nobs-main ::-webkit-scrollbar-thumb { background: #2e3038; border-radius: 3px; }
-	.nobs-main ::-webkit-scrollbar-thumb:hover { background: #4a4e5a; }
+	.nobs-main ::-webkit-scrollbar-thumb { background: var(--vscode-scrollbarSlider-background); border-radius: 3px; }
+	.nobs-main ::-webkit-scrollbar-thumb:hover { background: var(--vscode-scrollbarSlider-hoverBackground); }
 `;

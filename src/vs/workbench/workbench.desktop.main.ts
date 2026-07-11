@@ -96,6 +96,7 @@ import '../platform/agentHost/electron-browser/remoteAgentHostService.js';
 import '../platform/agentHost/browser/agentHostEnablementService.js';
 import './services/browserView/electron-browser/playwrightWorkbenchService.js';
 import './services/process/electron-browser/processService.js';
+import './services/sessionManager/electron-browser/sessionManagerService.js';
 import './services/power/electron-browser/powerService.js';
 
 import { registerSingleton } from '../platform/instantiation/common/extensions.js';
