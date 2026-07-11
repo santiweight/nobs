@@ -1,13 +1,13 @@
 /*---------------------------------------------------------------------------------------------
- *  Session Manager — Smoke Test (real claude + tmux)
+ *  Session Manager — Smoke Test (real claude + node-pty)
  *  Run with: npx tsx src/vs/platform/sessionManager/node/smoke.test.ts
  *--------------------------------------------------------------------------------------------*/
 
-import { SessionManager } from './sessionManagerImpl.js';
+import { ClaudeSessionManager } from './sessionManagerImpl.js';
 import { SessionEventType } from '../common/types.js';
 
 async function main() {
-	const manager = new SessionManager();
+	const manager = new ClaudeSessionManager();
 
 	console.log('=== spawn ===');
 	const { id, stream } = await manager.spawn('say hello and nothing else', process.cwd());
@@ -30,9 +30,13 @@ async function main() {
 	console.log('\n=== status ===');
 	console.log(`status: ${await manager.status(id)}`);
 
+	console.log('\n=== output ===');
+	const output = await manager.getOutput(id);
+	console.log(`output length: ${output.length} chars`);
+
 	console.log('\n=== list ===');
 	for (const info of await manager.list()) {
-		console.log(`  ${info.id} | ${info.status} | ${info.tmuxSession}`);
+		console.log(`  ${info.id} | ${info.status} | ${info.cwd}`);
 	}
 
 	console.log('\n=== resume ===');

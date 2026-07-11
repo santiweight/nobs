@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------------------------
  *  Session Manager — Types
- *  Manages headless Claude CLI sessions via tmux, using subscription auth.
+ *  Provider-agnostic interface for managing headless coding agent sessions.
  *--------------------------------------------------------------------------------------------*/
 
 export type SessionId = string;
@@ -42,7 +42,15 @@ export interface SessionInfo {
 	readonly id: SessionId;
 	readonly status: SessionStatus;
 	readonly cwd: string;
-	readonly tmuxSession: string;
 	readonly createdAt: number;
 	readonly lastActivityAt: number;
+}
+
+export interface ISessionManager {
+	spawn(prompt: string, cwd: string): Promise<{ id: SessionId; stream: AsyncIterable<SessionEvent> }>;
+	resume(id: SessionId, prompt: string): Promise<AsyncIterable<SessionEvent>>;
+	status(id: SessionId): Promise<SessionStatus>;
+	kill(id: SessionId): Promise<void>;
+	list(): Promise<SessionInfo[]>;
+	getOutput(id: SessionId): Promise<string>;
 }
