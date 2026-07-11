@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------------------------
  *  Standalone test runner — no mocha dependency needed.
- *  Implements suite/test/setup with the same TDD interface.
+ *  Implements suite/test/setup/teardown with the same TDD interface.
  *
  *  Run with: npx tsx src/vs/platform/sessionManager/test/run.ts
  *--------------------------------------------------------------------------------------------*/
@@ -13,11 +13,12 @@ interface TestCase {
 interface Suite {
 	name: string;
 	setup?: () => Promise<void> | void;
+	teardown?: () => Promise<void> | void;
 	tests: TestCase[];
 	suites: Suite[];
 }
 
-const rootSuite: Suite = { name: '', setup: undefined, tests: [], suites: [] };
+const rootSuite: Suite = { name: '', setup: undefined, teardown: undefined, tests: [], suites: [] };
 const suiteStack: Suite[] = [rootSuite];
 
 function current(): Suite {
@@ -25,7 +26,7 @@ function current(): Suite {
 }
 
 (globalThis as any).suite = (name: string, fn: () => void) => {
-	const s: Suite = { name, setup: undefined, tests: [], suites: [] };
+	const s: Suite = { name, setup: undefined, teardown: undefined, tests: [], suites: [] };
 	current().suites.push(s);
 	suiteStack.push(s);
 	fn();
@@ -40,7 +41,11 @@ function current(): Suite {
 	current().setup = fn;
 };
 
-async function runSuite(s: Suite, indent: string, parentSetups: Array<() => Promise<void> | void> = []): Promise<{ passed: number; failed: number }> {
+(globalThis as any).teardown = (fn: () => Promise<void> | void) => {
+	current().teardown = fn;
+};
+
+async function runSuite(s: Suite, indent: string, parentSetups: Array<() => Promise<void> | void> = [], parentTeardowns: Array<() => Promise<void> | void> = []): Promise<{ passed: number; failed: number }> {
 	let passed = 0;
 	let failed = 0;
 
@@ -49,6 +54,7 @@ async function runSuite(s: Suite, indent: string, parentSetups: Array<() => Prom
 	}
 
 	const allSetups = s.setup ? [...parentSetups, s.setup] : parentSetups;
+	const allTeardowns = s.teardown ? [...parentTeardowns, s.teardown] : parentTeardowns;
 
 	for (const t of s.tests) {
 		for (const setupFn of allSetups) {
@@ -69,10 +75,13 @@ async function runSuite(s: Suite, indent: string, parentSetups: Array<() => Prom
 			}
 			failed++;
 		}
+		for (const teardownFn of allTeardowns) {
+			await teardownFn();
+		}
 	}
 
 	for (const child of s.suites) {
-		const result = await runSuite(child, indent + '  ', allSetups);
+		const result = await runSuite(child, indent + '  ', allSetups, allTeardowns);
 		passed += result.passed;
 		failed += result.failed;
 	}
@@ -81,9 +90,6 @@ async function runSuite(s: Suite, indent: string, parentSetups: Array<() => Prom
 }
 
 async function main() {
-	// Load test files
-	await import('./mockTmux.test.js');
-	await import('./tmux.test.js');
 	await import('./sessionManager.test.js');
 
 	console.log('\nSession Manager Tests\n');

@@ -330,6 +330,9 @@ import './contrib/output/browser/outputView.js';
 import './contrib/terminal/terminal.all.js';
 import './contrib/nobs/browser/nobs.contribution.js';
 
+// Agent Sessions
+import './contrib/agentSession/browser/agentSession.contribution.js';
+
 // External terminal
 import './contrib/externalTerminal/browser/externalTerminal.contribution.js';
 
