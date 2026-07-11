@@ -1,0 +1,138 @@
+name: Nobs Smoke Tests
+
+on:
+  pull_request:
+    paths:
+      - 'src/vs/workbench/**/nobs/**'
+      - 'src/vs/workbench/browser/parts/nobs/**'
+  push:
+    branches: [main]
+    paths:
+      - 'src/vs/workbench/**/nobs/**'
+      - 'src/vs/workbench/browser/parts/nobs/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nobs-smoke-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  smoke-test:
+    name: UI Smoke Test
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+      - run: npm ci
+
+      - name: Compile
+        run: npm run gulp compile
+
+      - name: Download Electron
+        run: npx gulp electron
+
+      - name: Create test project
+        run: |
+          mkdir -p /tmp/nobs-test-project
+          cd /tmp/nobs-test-project
+          git init
+          git commit --allow-empty -m "init"
+
+      - name: Launch Code OSS and run smoke tests
+        run: |
+          set -euo pipefail
+
+          # Launch Code OSS with test project
+          ./.build/electron/Code\ -\ OSS.app/Contents/MacOS/Code\ -\ OSS \
+            /tmp/nobs-test-project \
+            --user-data-dir=/tmp/nobs-smoke-udd \
+            --extensions-dir=/tmp/nobs-smoke-ext \
+            --remote-debugging-port=9222 \
+            --disable-extension=vscode.vscode-api-tests \
+            --skip-welcome &
+          APP_PID=$!
+
+          # Wait for CDP
+          for i in $(seq 1 30); do
+            if curl -s http://127.0.0.1:9222/json > /dev/null 2>&1; then
+              echo "CDP ready after ${i}s"
+              break
+            fi
+            sleep 1
+          done
+
+          # Attach Playwright
+          PW_SESSION="smoke-$$"
+          npx @playwright/cli -s=$PW_SESSION attach --cdp=http://127.0.0.1:9222 || {
+            echo "Failed to attach Playwright"
+            kill $APP_PID 2>/dev/null
+            exit 1
+          }
+
+          ERRORS=0
+
+          # --- Test 1: Sidebar renders with project ---
+          echo "=== Test 1: Sidebar renders ==="
+          SNAPSHOT=$(npx @playwright/cli -s=$PW_SESSION snapshot 2>&1)
+          if echo "$SNAPSHOT" | grep -q "Workspaces"; then
+            echo "PASS: Workspaces header found"
+          else
+            echo "FAIL: Workspaces header not found"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          if echo "$SNAPSHOT" | grep -q "nobs-test-project\|main"; then
+            echo "PASS: Project or branch visible"
+          else
+            echo "FAIL: No project visible in sidebar"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          # --- Test 2: Tab bars exist ---
+          echo "=== Test 2: Tab bars exist ==="
+          if echo "$SNAPSHOT" | grep -q "Claude\|Codex"; then
+            echo "PASS: Agent tab actions found"
+          else
+            echo "FAIL: No agent tab actions"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          if echo "$SNAPSHOT" | grep -q "Terminal\|Browser"; then
+            echo "PASS: Output tab actions found"
+          else
+            echo "FAIL: No output tab actions"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          # --- Test 3: Status bar shows connected ---
+          echo "=== Test 3: Status bar ==="
+          if echo "$SNAPSHOT" | grep -q "Connected"; then
+            echo "PASS: Connected status shown"
+          else
+            echo "FAIL: Connected status not found"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          # --- Test 4: No uncaught errors ---
+          echo "=== Test 4: No uncaught errors ==="
+          CONSOLE_ERRORS=$(echo "$SNAPSHOT" | grep -ic "uncaught" || true)
+          if [ "$CONSOLE_ERRORS" -eq 0 ]; then
+            echo "PASS: No uncaught errors"
+          else
+            echo "FAIL: Found $CONSOLE_ERRORS uncaught errors"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          # Cleanup
+          npx @playwright/cli -s=$PW_SESSION close 2>/dev/null || true
+          kill $APP_PID 2>/dev/null || true
+
+          echo ""
+          echo "=== Results: $ERRORS failures ==="
+          exit $ERRORS

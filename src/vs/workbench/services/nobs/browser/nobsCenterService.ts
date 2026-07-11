@@ -45,6 +45,7 @@ export interface INobsCenterService {
 
 export interface INobsAddAction {
 	readonly label: string;
+	readonly icon?: string;
 	readonly handler: () => void;
 }
 

@@ -32,10 +32,10 @@ class NobsContribution extends Disposable {
 		this._register(this._nobsCenterService.onDidActivateWorkspace(({ worktreePath, isFirstActivation }) => {
 			this._activeWorktreePath = worktreePath;
 			if (isFirstActivation) {
-				mainWindow.requestAnimationFrame(() => {
+				setTimeout(() => {
 					this._nobsCenterService.addAgentTab('claude');
 					this._nobsCenterService.addOutputTab('terminal');
-				});
+				}, 100);
 			}
 		}));
 

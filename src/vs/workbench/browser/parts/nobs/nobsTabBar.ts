@@ -14,6 +14,7 @@ export interface INobsTabInfo {
 
 export interface INobsAddAction {
 	readonly label: string;
+	readonly icon?: string;
 	readonly handler: () => void;
 }
 
@@ -51,7 +52,17 @@ export class NobsTabBar extends Disposable {
 
 		for (const action of this._addActions) {
 			const btn = append(this._actionsContainer, $('.nobs-tab-add-btn'));
-			btn.textContent = `${action.label} +`;
+			if (action.icon) {
+				const iconSpan = append(btn, $('span.nobs-tab-add-icon'));
+				iconSpan.textContent = action.icon;
+				const plus = append(btn, $('span'));
+				plus.textContent = '+';
+				plus.style.fontSize = '9px';
+				plus.style.marginLeft = '1px';
+				btn.title = action.label;
+			} else {
+				btn.textContent = `${action.label} +`;
+			}
 			btn.addEventListener('click', () => action.handler());
 		}
 

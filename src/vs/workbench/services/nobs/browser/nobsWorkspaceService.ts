@@ -29,6 +29,7 @@ export interface INobsWorkspaceService {
 	selectWorkspace(workspaceId: string): void;
 	addWorktree(projectId: string, branchName: string): Promise<INobsWorkspace>;
 	removeWorktree(workspaceId: string): Promise<void>;
+	renameWorkspace(workspaceId: string, newName: string): void;
 
 	readonly onDidChangeProjects: Event<void>;
 	readonly onDidChangeActiveWorkspace: Event<INobsWorkspace | undefined>;
@@ -284,6 +285,17 @@ export class NobsWorkspaceService extends Disposable implements INobsWorkspaceSe
 					}
 				}
 
+				this._onDidChangeProjects.fire();
+				return;
+			}
+		}
+	}
+
+	renameWorkspace(workspaceId: string, newName: string): void {
+		for (const workspaces of this._workspaces.values()) {
+			const ws = workspaces.find(w => w.id === workspaceId);
+			if (ws) {
+				ws.name = newName;
 				this._onDidChangeProjects.fire();
 				return;
 			}

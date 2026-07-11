@@ -13,7 +13,7 @@ export interface INobsProject {
 export interface INobsWorkspace {
 	readonly id: string;
 	readonly projectId: string;
-	readonly name: string;
+	name: string;
 	readonly branch: string;
 	readonly worktreePath: string;
 	readonly isMain: boolean;

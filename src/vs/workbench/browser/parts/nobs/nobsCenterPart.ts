@@ -99,12 +99,12 @@ export class NobsCenterPart extends Part {
 
 				service.activateWorkspace(ws.id, ws.worktreePath, this._agentPanel, this._outputPanel,
 					[
-						{ label: 'Claude', handler: () => service.addAgentTab('claude') },
-						{ label: 'Codex', handler: () => service.addAgentTab('codex') },
+						{ label: 'New Claude session', icon: ICON_CLAUDE, handler: () => service.addAgentTab('claude') },
+						{ label: 'New Codex session', icon: ICON_CODEX, handler: () => service.addAgentTab('codex') },
 					],
 					[
-						{ label: 'Browser', handler: () => service.addOutputTab('browser') },
-						{ label: 'Terminal', handler: () => service.addOutputTab('terminal') },
+						{ label: 'New Browser', icon: ICON_BROWSER, handler: () => service.addOutputTab('browser') },
+						{ label: 'New Terminal', icon: ICON_TERMINAL, handler: () => service.addOutputTab('terminal') },
 					],
 				);
 			}
@@ -148,7 +148,7 @@ export class NobsCenterPart extends Part {
 			addBtn.textContent = '+';
 			addBtn.addEventListener('click', (e) => {
 				e.stopPropagation();
-				this._promptNewWorktree(project.id);
+				this._addNewWorktree(project.id);
 			});
 
 			projectHeader.addEventListener('click', () => {
@@ -162,7 +162,17 @@ export class NobsCenterPart extends Part {
 					const wsItem = append(group, $(`.nobs-workspace-item${isActive ? '.active' : ''}`));
 					const dot = append(wsItem, $('.nobs-ws-dot'));
 					dot.style.display = 'inline-block';
-					wsItem.appendChild(document.createTextNode(ws.name));
+					const wsLabel = append(wsItem, $('.nobs-ws-label'));
+					wsLabel.textContent = ws.name;
+
+					if (!ws.isMain) {
+						const renameBtn = append(wsItem, $('.nobs-ws-rename'));
+						renameBtn.textContent = '✎';
+						renameBtn.addEventListener('click', (e) => {
+							e.stopPropagation();
+							this._renameWorkspace(ws.id, ws.name);
+						});
+					}
 
 					wsItem.addEventListener('click', () => {
 						this._workspaceService.selectWorkspace(ws.id);
@@ -172,13 +182,21 @@ export class NobsCenterPart extends Part {
 		}
 	}
 
-	private async _promptNewWorktree(projectId: string): Promise<void> {
-		const name = await this._quickInputService.input({
-			placeHolder: 'Enter branch name',
-			prompt: 'Create a new workspace (git worktree)',
+	private _wsCounter = 0;
+
+	private _addNewWorktree(projectId: string): void {
+		const name = `workspace-${++this._wsCounter}`;
+		this._workspaceService.addWorktree(projectId, name);
+	}
+
+	private async _renameWorkspace(workspaceId: string, currentName: string): Promise<void> {
+		const newName = await this._quickInputService.input({
+			placeHolder: currentName,
+			prompt: 'Rename workspace',
+			value: currentName,
 		});
-		if (name) {
-			this._workspaceService.addWorktree(projectId, name);
+		if (newName && newName !== currentName) {
+			this._workspaceService.renameWorkspace(workspaceId, newName);
 		}
 	}
 
@@ -245,6 +263,15 @@ export class NobsCenterPart extends Part {
 		return { type: Parts.NOBS_CENTER_PART };
 	}
 }
+
+// allow-any-unicode-next-line
+const ICON_CLAUDE = '✦';
+// allow-any-unicode-next-line
+const ICON_CODEX = '⬡';
+// allow-any-unicode-next-line
+const ICON_BROWSER = '🌐';
+// allow-any-unicode-next-line
+const ICON_TERMINAL = '▶';
 
 const NOBS_STYLES = `
 	.nobs-wrapper {
@@ -372,6 +399,35 @@ const NOBS_STYLES = `
 	}
 	.nobs-workspace-item.active .nobs-ws-dot {
 		background: var(--vscode-list-activeSelectionForeground);
+	}
+	.nobs-ws-label {
+		flex: 1;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.nobs-ws-rename {
+		width: 18px;
+		height: 18px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 3px;
+		color: var(--vscode-disabledForeground);
+		cursor: pointer;
+		font-size: 11px;
+		opacity: 0;
+		transition: opacity 0.1s;
+		flex-shrink: 0;
+		background: none;
+		border: none;
+	}
+	.nobs-workspace-item:hover .nobs-ws-rename {
+		opacity: 1;
+	}
+	.nobs-ws-rename:hover {
+		background: var(--vscode-toolbar-hoverBackground);
+		color: var(--vscode-foreground);
 	}
 	.nobs-sidebar-footer {
 		padding: 8px 12px;

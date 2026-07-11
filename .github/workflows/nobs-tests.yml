@@ -1,0 +1,55 @@
+name: Nobs Tests
+
+on:
+  pull_request:
+    paths:
+      - 'src/vs/workbench/**/nobs/**'
+      - 'src/vs/platform/gitWorktree/**'
+      - 'src/vs/platform/sessionManager/**'
+  push:
+    branches: [main]
+    paths:
+      - 'src/vs/workbench/**/nobs/**'
+      - 'src/vs/platform/gitWorktree/**'
+      - 'src/vs/platform/sessionManager/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nobs-tests-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck:
+    name: Typecheck & Layering
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+      - run: npm ci
+      - name: Typecheck client
+        run: npm run typecheck-client
+      - name: Layering check
+        run: npm run valid-layers-check
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+      - run: npm ci
+      - name: Compile
+        run: npm run gulp compile
+      - name: Run Nobs unit tests
+        run: |
+          VSCODE_SKIP_PRELAUNCH=1 ./scripts/test.sh \
+            src/vs/platform/gitWorktree/test/gitWorktreeMainService.test.ts \
+            src/vs/workbench/services/nobs/test/nobsWorkspaceService.test.ts \
+            src/vs/workbench/services/nobs/test/nobsCenterService.test.ts \
+            src/vs/workbench/services/nobs/test/nobsInteraction.test.ts
